@@ -2,9 +2,12 @@ import { Controller, Post, Headers, Req, Res, ForbiddenException } from '@nestjs
 import type { RawBodyRequest } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import * as crypto from 'crypto';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq/dist/esm/classes/queue';
 
 @Controller('webhooks')
 export class WebhooksController {
+    constructor(@InjectQueue('pr-review-queue') private readonly prQueue: Queue) {}
 
     @Post()
     async handleWebhook(
@@ -21,13 +24,21 @@ export class WebhooksController {
 
         // Filter for pull request events
         if (event === 'pull_request') {
-            const { action, pull_request } = req.body;
+            const { action, pull_request, installation } = req.body;
 
             if (action === 'opened' || action === 'synchronize') {
                 console.log(`PR Detected: ${pull_request.title} by ${pull_request.user.login}`);
 
-                // TODO: Push this to a Queue (SQS/PubSub) 
-                // to handle the long-running AI analysis asynchronously
+                // Add a job to the queue
+                await this.prQueue.add('analyze-pr', {
+                    repo: pull_request.base.repo.full_name,
+                    prNumber: pull_request.number,
+                    installationId: installation.id,
+                    diffUrl: pull_request.diff_url,  
+                }, {
+                    attempts: 3, // Retry up to 3 times if AI rate limited
+                    backoff: { type: 'exponential', delay: 1000 },
+                });
             }
         }
 

@@ -20,13 +20,15 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@nestjs/bullmq": "^11.0.4",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
     "@octokit/app": "^16.1.2",
-    "@octokit/auth-app": "^8.1.2",
     "@octokit/webhooks": "^14.2.0",
+    "bullmq": "^5.67.2",
     "dotenv": "^17.2.3",
+    "octokit": "^5.0.5",
     "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.1"
   },

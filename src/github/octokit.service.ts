@@ -1,35 +1,20 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
-import { Octokit } from '@octokit/core';
-import { createAppAuth } from '@octokit/auth-app';
+import { Injectable } from '@nestjs/common';
+import { Octokit } from 'octokit';
 import * as fs from 'fs';
 
 @Injectable()
 export class OctokitService {
-    private appOctokit: Octokit;
 
-    constructor() {
+    async getInstallationClient(installationId: number): Promise<Octokit> {
         const privateKey = fs.readFileSync(process.env.GITHUB_PRIVATE_KEY_PATH!, 'utf8');
 
-        this.appOctokit = new Octokit({
-            authStrategy: createAppAuth,
+        return new Octokit({
+            authStrategy: null, // use explicit app-auth logic
             auth: {
-                appId: process.env.GITHUB_APP_ID!,
+                appId: process.env.GITHUB_APP_ID,
                 privateKey: privateKey,
+                installationId: installationId,
             },
         });
-    }
-
-    async getInstallationOctokit(installationId: number): Promise<Octokit> {
-        const auth = createAppAuth({
-            appId: Number(process.env.GITHUB_APP_ID!),
-            privateKey: fs.readFileSync(process.env.GITHUB_PRIVATE_KEY_PATH!, 'utf8'),
-        });
-
-        const { token } = await auth ({
-            type: 'installation',
-            installationId: installationId,
-        });
-
-        return new Octokit({ auth: token});
     }
 }
