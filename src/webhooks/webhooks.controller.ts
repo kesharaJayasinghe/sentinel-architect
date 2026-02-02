@@ -3,18 +3,27 @@ import type { RawBodyRequest } from '@nestjs/common';
 import type { Request, Response } from 'express';
 import * as crypto from 'crypto';
 import { InjectQueue } from '@nestjs/bullmq';
-import { Queue } from 'bullmq/dist/esm/classes/queue';
+import { Queue } from 'bullmq';
 
 @Controller('webhooks')
 export class WebhooksController {
-    constructor(@InjectQueue('pr-review-queue') private readonly prQueue: Queue) {}
+    constructor(@InjectQueue('pr-review-queue') private readonly prQueue: Queue) { }
 
     @Post()
     async handleWebhook(
         @Headers('x-hub-signature-256') signature: string,
-        @Req() req: RawBodyRequest<Request>,
+        @Req() req: any,
         @Res() res: Response
     ) {
+        const rawBody = req.rawBody;
+
+        if (!rawBody || !this.verifySignature(signature, rawBody)) {
+            console.log('❌ Signature verification failed');
+            return res.status(403).send('Forbidden');
+        }
+
+        console.log('✅ Signature verified!');
+
         // Verify the signature
         if (!this.verifySignature(signature, req.rawBody)) {
             throw new ForbiddenException('Invalid signature');
@@ -34,7 +43,7 @@ export class WebhooksController {
                     repo: pull_request.base.repo.full_name,
                     prNumber: pull_request.number,
                     installationId: installation.id,
-                    diffUrl: pull_request.diff_url,  
+                    diffUrl: pull_request.diff_url,
                 }, {
                     attempts: 3, // Retry up to 3 times if AI rate limited
                     backoff: { type: 'exponential', delay: 1000 },
@@ -48,11 +57,24 @@ export class WebhooksController {
 
     private verifySignature(signature: string, payload: any): boolean {
         const secret = process.env.GITHUB_WEBHOOK_SECRET;
+        console.log('DEBUG: Secret exists?', !!secret);
         if (!secret) {
             throw new Error('GITHUB_WEBHOOK_SECRET is not configured');
         }
         const hmac = crypto.createHmac('sha256', secret);
-        const digest = 'sha256=' + hmac.update(JSON.stringify(payload)).digest('hex');
-        return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
+        // const digest = 'sha256=' + hmac.update(JSON.stringify(payload)).digest('hex');
+        const digest = Buffer.from(
+            'sha256=' + hmac.update(payload).digest('hex'),
+            'utf8'
+        );
+
+        const checksum = Buffer.from(signature, 'utf8');
+
+        // return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(digest));
+
+        return (
+            checksum.length === digest.length &&
+            crypto.timingSafeEqual(digest, checksum)
+        );
     }
 }
