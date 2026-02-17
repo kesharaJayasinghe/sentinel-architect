@@ -6,6 +6,9 @@
 
 Sentinel Architect is a GitHub App backend built with [NestJS](https://nestjs.com). It listens for pull request webhooks, queues review jobs via BullMQ, fetches the PR diff, runs it through two AI models in parallel, and posts a consolidated review comment back on the pull request.
 
+## How it Works
+
+<img src="https://github.com/kesharaJayasinghe/sentinel-architect/blob/main/sentinal_architect_diag.webp" width="400">
 
 ## Tech Stack
 
