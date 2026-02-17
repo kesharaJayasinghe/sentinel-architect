@@ -1,101 +1,78 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# Sentinel Architect
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+> AI-powered GitHub Pull Request reviewer that delivers dual-perspective code reviews/ architectural analysis via **Google Gemini** and security auditing via **Grok (xAI)**, posted directly as PR comments.
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+## Overview
 
-## Description
+Sentinel Architect is a GitHub App backend built with [NestJS](https://nestjs.com). It listens for pull request webhooks, queues review jobs via BullMQ, fetches the PR diff, runs it through two AI models in parallel, and posts a consolidated review comment back on the pull request.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
 
-## Project setup
+## Tech Stack
 
-```bash
-$ npm install
+- **Framework**: NestJS 11 (TypeScript, Node.js)
+- **Job Queue**: BullMQ + Redis
+- **GitHub API**: Octokit (GitHub App authentication)
+- **AI — Architect**: Google Gemini 2.0 Flash (`@google/genai`) 
+- **AI — Security**: Grok 4 via xAI REST API
+
+## Prerequisites
+
+- **Node.js** >= 18
+- **Redis** server running on `localhost:6379` (or configure accordingly)
+- A registered **GitHub App** with:
+  - Webhook URL pointing to `<your-host>/webhooks`
+  - `pull_request` event subscription
+  - Permissions: Pull requests (read), Issues (write)
+  - A generated private key (`.pem` file)
+- **Google Gemini API key** ([Google AI Studio](https://aistudio.google.com/))
+- **Grok API key** ([xAI Console](https://console.x.ai/))
+
+## Environment Variables
+
+Create a `.env` file in the project root:
+
+```env
+# Server
+PORT=3000
+
+# GitHub App
+GITHUB_APP_ID=<your-github-app-id>
+GITHUB_PRIVATE_KEY_PATH=<path-to-your-private-key.pem>
+GITHUB_WEBHOOK_SECRET=<your-webhook-secret>
+
+# AI Providers
+GEMINI_API_KEY=<your-gemini-api-key>
+GROK_API_KEY=<your-grok-api-key>
 ```
 
-## Compile and run the project
+## Installation
 
 ```bash
-# development
-$ npm run start
-
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+npm install
 ```
 
-## Run tests
+## Running the App
 
 ```bash
-# unit tests
-$ npm run test
+# Start Redis
+redis-server
 
-# e2e tests
-$ npm run test:e2e
+# Development
+npm run start:dev
 
-# test coverage
-$ npm run test:cov
+# Production build
+npm run build
+npm run start:prod
 ```
 
-## Deployment
+The server listens on the configured `PORT` (default `3000`). Expose the `/webhooks` endpoint to GitHub. For local development tunnel tool such as [ngrok](https://ngrok.com/) or [smee.io](https://smee.io/) can be used.
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
+## Key Design Decisions
 
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
-
-```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
-```
-
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
-
-## Resources
-
-Check out a few resources that may come in handy when working with NestJS:
-
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
-
-## Support
-
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
-
-## Stay in touch
-
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
-
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+- **Raw body parsing** is enabled at bootstrap so webhook HMAC-SHA256 signatures can be verified against the untouched payload.
+- **BullMQ** decouples webhook ingestion from AI processing. GitHub gets a fast `202 Accepted` while reviews are processed asynchronously with automatic retries (3 attempts, exponential backoff).
+- **Parallel AI calls**, Gemini (for architecture) and Grok (for security) reviews run concurrently via `Promise.all`, minimising total latency.
+- **GitHub App auth**, each installation gets its own scoped Octokit client via `OctokitService`, following the GitHub App authentication model.
 
 
 * Start Redis with Docker
